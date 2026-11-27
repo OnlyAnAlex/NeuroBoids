@@ -168,3 +168,6 @@ Os efeitos observados foram:
 
 A onda de pânico se propaga por vizinhança: só uns 10 a 40 boids "veem" o predador, mas o
 alinhamento transmite a manobra para o resto do grupo.
+
+## Feito por
+Alexandre Inácio Tavares
