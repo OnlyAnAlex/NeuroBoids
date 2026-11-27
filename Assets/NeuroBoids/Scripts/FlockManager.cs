@@ -1,10 +1,5 @@
 using UnityEngine;
 
-/// <summary>
-/// Instancia o bando e guarda TODOS os parâmetros ajustáveis no Inspector.
-/// Não há líder nem coreografia: o FlockManager só cria os boids e avança a
-/// simulação em duas fases (calcular forças → integrar) a cada passo de física.
-/// </summary>
 [DefaultExecutionOrder(-50)]
 public class FlockManager : MonoBehaviour
 {
@@ -60,15 +55,13 @@ public class FlockManager : MonoBehaviour
     [Min(0f)] public float logStatsEvery = 0f;
     [Tooltip("Distância usada só nas estatísticas para decidir se dois boids estão no mesmo grupo.")]
     [Min(0.1f)] public float statsGroupLinkDistance = 3f;
-
-    /// <summary>Array único reutilizado por todos os boids na percepção.</summary>
     public Collider[] NeighborBuffer { get; private set; }
     public Boid[] Boids => boids;
     public int Count => spawned;
 
     Boid[] boids;
     int spawned;
-    int[] unionParent; // buffer pré-alocado para contar grupos
+    int[] unionParent;
     float statsTimer;
 
     void Awake()
@@ -78,7 +71,6 @@ public class FlockManager : MonoBehaviour
         if (boidLayer >= 0)
         {
             if (boidMask.value == 0) boidMask = 1 << boidLayer;
-            // Boids não colidem fisicamente entre si: quem os separa é a regra de separação.
             Physics.IgnoreLayerCollision(boidLayer, boidLayer, true);
         }
         else
@@ -98,7 +90,6 @@ public class FlockManager : MonoBehaviour
 
         for (int i = 0; i < boidCount; i++)
         {
-            // não nasce dentro de um obstáculo
             Vector3 p = center + Random.insideUnitSphere * spawnRadius;
             for (int tries = 0; tries < 30 && Physics.CheckSphere(p, 1f, obstacleMask, QueryTriggerInteraction.Ignore); tries++)
                 p = center + Random.insideUnitSphere * spawnRadius;
@@ -116,11 +107,9 @@ public class FlockManager : MonoBehaviour
     void FixedUpdate()
     {
         if (boids == null) return;
-        if (NeighborBuffer.Length != maxNeighbors) NeighborBuffer = new Collider[maxNeighbors]; // só se mudou no Inspector
+        if (NeighborBuffer.Length != maxNeighbors) NeighborBuffer = new Collider[maxNeighbors];
 
-        // Fase 1: todos calculam a força com o mesmo "retrato" do bando.
         for (int i = 0; i < spawned; i++) boids[i].ComputeStep();
-        // Fase 2: todos integram.
         float dt = Time.fixedDeltaTime;
         for (int i = 0; i < spawned; i++) boids[i].ApplyStep(dt);
 
@@ -139,8 +128,6 @@ public class FlockManager : MonoBehaviour
             for (int i = 0; i < spawned; i++)
                 if (boids[i] != null) boids[i].drawPerceptionGizmo = i == gizmoBoidIndex;
     }
-
-    /// <summary>Boid com mais vizinhos = miolo do maior grupo (alvo do predador).</summary>
     public Boid DensestBoid()
     {
         Boid best = null;
@@ -149,8 +136,6 @@ public class FlockManager : MonoBehaviour
             if (boids[i].NeighborCount > bestCount) { bestCount = boids[i].NeighborCount; best = boids[i]; }
         return best;
     }
-
-    /// <summary>Boid mais próximo de um ponto.</summary>
     public Boid NearestBoid(Vector3 point)
     {
         Boid best = null;
@@ -163,26 +148,22 @@ public class FlockManager : MonoBehaviour
         return best;
     }
 
-    // ------------------------------------------------------------------
-    // Estatísticas para os testes (sob demanda; não roda por frame).
-    // ------------------------------------------------------------------
-
     public struct FlockStats
     {
         public int count;
-        public float polarization;          // |média das direções| : 0 = caótico, 1 = todos alinhados
-        public float groupPolarization;     // mesma medida, mas dentro de cada grupo (média ponderada)
-        public float meanNearestNeighbor;   // distância média ao vizinho mais próximo
+        public float polarization;          
+        public float groupPolarization;     
+        public float meanNearestNeighbor;   
         public float minNearestNeighbor;
-        public float meanDistanceToCentroid;// "raio" do bando
-        public int groups;                  // componentes conexos com ligação = perceptionRadius
+        public float meanDistanceToCentroid;
+        public int groups;                  
         public int largestGroup;
         public float meanSpeed;
         public float meanNeighbors;
         public int fleeing;
         public int outsideBounds;
-        public int insideObstacle;          // deve ser sempre 0
-        public int invalid;                 // posição/velocidade NaN: deve ser sempre 0
+        public int insideObstacle;          
+        public int invalid;                 
 
         public override string ToString() =>
             $"n={count} polar={polarization:F2} polarGrupo={groupPolarization:F2} nnMed={meanNearestNeighbor:F2} nnMin={minNearestNeighbor:F2} " +
@@ -240,8 +221,7 @@ public class FlockManager : MonoBehaviour
         st.minNearestNeighbor = nnMin;
         st.meanDistanceToCentroid = cSum / spawned;
 
-        // conta grupos, o tamanho do maior e a polarização dentro de cada grupo
-        int[] size = new int[spawned];           // alocações só nesta chamada de depuração
+        int[] size = new int[spawned];
         Vector3[] groupDir = new Vector3[spawned];
         for (int i = 0; i < spawned; i++)
         {
@@ -257,7 +237,7 @@ public class FlockManager : MonoBehaviour
             if (size[i] == 0) continue;
             st.groups++;
             if (size[i] > st.largestGroup) st.largestGroup = size[i];
-            gp += groupDir[i].magnitude; // = |média| * tamanho do grupo
+            gp += groupDir[i].magnitude;
         }
         st.groupPolarization = gp / spawned;
         return st;
@@ -284,7 +264,6 @@ public class FlockManager : MonoBehaviour
 
     void OnDrawGizmos()
     {
-        // Limite do mundo (a força de retorno é zero dentro desta esfera)
         Gizmos.color = new Color(0.4f, 0.7f, 1f, 0.35f);
         Gizmos.DrawWireSphere(transform.position, boundsRadius);
         if (predator != null && predator.gameObject.activeInHierarchy)

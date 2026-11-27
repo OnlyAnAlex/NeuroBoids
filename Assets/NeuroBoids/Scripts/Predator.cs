@@ -1,11 +1,5 @@
 using UnityEngine;
 
-/// <summary>
-/// Esfera que persegue o bando. A cada <see cref="retargetInterval"/> segundos escolhe
-/// um alvo (o boid com mais vizinhos, ou o mais próximo) e acelera em direção a ele.
-/// Os boids reagem com a regra de fuga (FlockManager.fleeWeight).
-/// Não tem collider: é um "fantasma" que só assusta, não empurra.
-/// </summary>
 public class Predator : MonoBehaviour
 {
     public FlockManager flock;
@@ -35,7 +29,6 @@ public class Predator : MonoBehaviour
         Vector3 pos = transform.position;
         Vector3 toTarget = target.Position - pos;
 
-        // não sai muito do mundo do bando
         Vector3 fromCenter = pos - flock.transform.position;
         if (fromCenter.magnitude > flock.boundsRadius * 1.2f) toTarget = -fromCenter;
 

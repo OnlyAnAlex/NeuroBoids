@@ -1,6 +1,5 @@
 using UnityEngine;
 
-/// <summary>Órbita lenta e automática da câmera ao redor do bando (sem input).</summary>
 public class CameraOrbit : MonoBehaviour
 {
     public Transform target;
